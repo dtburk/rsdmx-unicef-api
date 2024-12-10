@@ -1,0 +1,230 @@
+---
+title: "Retrieving education statistics from UNICEF with the rsdmx package"
+format: html
+editor: visual
+---
+
+Let's say we want to download upper secondary completion rates for all available African countries from the UNICEF data API. The first step is finding a dataflow related to education. Using the rsdmx package, we can get a table of all dataflows available from the UNICEF API:
+
+```{r}
+all_unicef_dataflows <- rsdmx::readSDMX(
+  providerId = "UNICEF", 
+  resource = "dataflow"
+) |> 
+  dplyr::as_tibble()
+```
+
+```{r}
+dplyr::glimpse(all_unicef_dataflows)
+```
+
+Now let's filter down to dataflows that mention education in their "Name.en" field:
+
+```{r}
+all_unicef_dataflows |> 
+  dplyr::filter(
+    stringr::str_detect(Name.en, stringr::fixed("education", ignore_case = TRUE))
+  ) |> 
+  dplyr::select(id, agencyID, Name.en, dsdRef)
+```
+
+Let's say we want to explore the UNICEF dataflow with id equal to "EDUCATION". We can see from the table above that that dataflow uses the data structure definition (DSD) "EDUCATION". We can get more information on that DSD with:
+
+```{r}
+unicef_education_dsd <- rsdmx::readSDMX(
+  providerId = "UNICEF",
+  resource = "datastructure",
+  resourceId = "EDUCATION"
+)
+```
+
+When we make a data request below, we will need to know the DSD dimensions in order. To see the dimensions in order, along with the codelists used by each, we use:
+
+```{r}
+dimensions_in_order <-
+  unicef_education_dsd@datastructures@datastructures[[1]]@Components@Dimensions
+
+dimensions_and_codelists_in_order <- purrr::map2(
+  seq_along(dimensions_in_order),
+  dimensions_in_order,
+  ~dplyr::tibble(order = .x, dimension = .y@conceptRef, codelist = .y@codelist)
+) |> purrr::list_rbind()
+```
+
+```{r}
+dimensions_and_codelists_in_order
+```
+
+Let's look more closely at the UNICIEF_INDICATOR dimension, which uses the codelist with name "CL_UNICEF_INDICATOR":
+
+```{r}
+unicef_education_dsd_indicators_codelist <- purrr::keep(
+  unicef_education_dsd@codelists@codelists,
+  ~.x@id == "CL_UNICEF_INDICATOR"
+)[[1]]
+```
+
+We can see information on the codes in the "CL_UNICEF_INDICATOR" codelist with:
+
+```{r}
+indicator_code_labels <- purrr::map_chr(
+  unicef_education_dsd_indicators_codelist@Code,
+  ~.x@label$en
+)
+head(indicator_code_labels)
+```
+
+It looks like we are getting all of the possible UNICEF indicators here, not just the ones related to education. Let's filter down to just the indicators that mention "education":
+
+```{r}
+stringr::str_subset(
+  indicator_code_labels, 
+  stringr::fixed("education", ignore_case = TRUE)
+)
+```
+
+The indicator "Completion rate for youth of upper secondary education school age" looks like what we want. Let's see more information on that just to be sure:
+
+```{r}
+upper_secondary_completion_indicator <- purrr::keep(
+  unicef_education_dsd_indicators_codelist@Code,
+  ~.x@label$en == "Completion rate for youth of upper secondary education school age"
+)[[1]]
+
+upper_secondary_completion_indicator@description$en
+```
+
+In order to request data for that indicator, we will need to know its ID value:
+
+```{r}
+upper_secondary_completion_indicator@id
+```
+
+In this case, we want to limit to countries from Africa, so let's look at the codelist "CL_COUNTRY":
+
+```{r}
+cl_country_codelist <- purrr::keep(
+  unicef_education_dsd@codelists@codelists,
+  ~.x@id == "CL_COUNTRY"
+)[[1]]
+
+country_codes_and_labels <- purrr::map(
+  cl_country_codelist@Code,
+  ~dplyr::tibble(code = .x@id, label = .x@label$en)
+) |> 
+  purrr::list_rbind()
+
+country_codes_and_labels
+```
+
+Let's use the countrycode package to find countries in Africa:
+
+```{r}
+country_codes_and_labels <- country_codes_and_labels |> 
+  dplyr::mutate(
+    standard_label = countrycode::countryname(label, destination = "country.name.en")
+  ) |> 
+  dplyr::left_join(
+    countrycode::codelist |> 
+      dplyr::select(continent, country.name.en),
+    by = c(standard_label = "country.name.en")
+  )
+```
+
+Let's see which labels couldn't be matched unambiguously:
+
+```{r}
+country_codes_and_labels |> 
+  dplyr::filter(is.na(continent)) |> 
+  dplyr::pull(label)
+```
+
+Looks like most of these are supra- or sub-national regions, so it makes sense that we couldn't match them to a single country name. Now we're ready to filter down to countries in Africa so we can get the corresponding codes for our API request:
+
+```{r}
+african_country_codes <- country_codes_and_labels |> 
+  dplyr::filter(continent == "Africa")
+
+african_country_codes
+```
+
+We could filter our request on additional dimensions, but for the sake of simplicity let's filter only to our target indicator and countries. Here's how to make that request:
+
+```{r}
+african_education_data <- rsdmx::readSDMX(
+  providerId = "UNICEF",
+  resource = "data",
+  flowRef = "EDUCATION",
+  key = list(african_country_codes$code, "ED_CR_L3")
+)
+```
+
+Remember from above that reference area and indicator were the first two dimensions in the DSD, which is why we can list our restrictions for just those two dimensions in our `key` argument. The list passed to `key` will be assumed to correspond to the first "n" dimensions (where n is the length of the list).
+
+To work with the data in R, we need to transform them from XML to an R data.frame or tibble:
+
+```{r}
+african_education_data_as_list <- XML::xmlToList(african_education_data@xmlObj)
+```
+
+```{r}
+african_education_data_points <- african_education_data_as_list$DataSet[
+  names(african_education_data_as_list$DataSet) == "Series"
+]
+
+african_education_data_as_tibble <- purrr::map(
+  african_education_data_points,
+  function(datapoint) {
+    obs_data <- purrr::map(datapoint$Obs, ~.x)
+    dimension_data <- purrr::map(datapoint$.attrs, ~.x)
+    dplyr::bind_cols(dimension_data, obs_data)
+  }
+) |> 
+  purrr::list_rbind()
+```
+
+Now let's filter to only totals by sex, wealth quintile, and residence, and select and rename only the columns we want:
+
+```{r}
+african_education_data_cleaned <- african_education_data_as_tibble |> 
+  dplyr::filter(
+    dplyr::if_all(c(SEX, WEALTH_QUINTILE, RESIDENCE), ~.x == "_T")
+  ) |> 
+  dplyr::left_join(
+    african_country_codes |> 
+      dplyr::select(REF_AREA = code, country_name = standard_label), 
+    by = "REF_AREA"
+  ) |> 
+  dplyr::select(
+    country_name, 
+    year = TIME_PERIOD, 
+    percent_completing_secondary = OBS_VALUE,
+    data_source = DATA_SOURCE
+  ) |> 
+  dplyr::mutate(
+    percent_completing_secondary = as.numeric(percent_completing_secondary)
+  )
+  
+```
+
+Now we're ready to plot our data:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 8
+african_education_data_cleaned |> 
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = forcats::fct_reorder(country_name, percent_completing_secondary), 
+      y = percent_completing_secondary
+    )
+  ) + 
+    ggplot2::geom_col() +
+    ggplot2::coord_flip() +
+    ggplot2::labs(
+      title = "Upper secondary completion rate, selected African countries",
+      y = "% completing upper secondary",
+      x = "Country",
+      caption = "Source: UNICEF"
+    )
+```
