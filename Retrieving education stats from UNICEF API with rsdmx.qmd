@@ -2,6 +2,7 @@
 title: "Retrieving education statistics from UNICEF with the rsdmx package"
 format: html
 editor: visual
+output-dir: docs
 ---
 
 Let's say we want to download upper secondary completion rates for all available African countries from the UNICEF data API. The first step is finding a dataflow related to education. Using the rsdmx package, we can get a table of all dataflows available from the UNICEF API:

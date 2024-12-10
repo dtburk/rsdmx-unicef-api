@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Retrieving education statistics from UNICEF with the rsdmx package</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Retrieving education statistics from UNICEF with the rsdmx package</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Let’s say we want to download upper secondary completion rates for all available African countries from the UNICEF data API. The first step is finding a dataflow related to education. Using the rsdmx package, we can get a table of all dataflows available from the UNICEF API:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>all_unicef_dataflows <span class="ot">&lt;-</span> rsdmx<span class="sc">::</span><span class="fu">readSDMX</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">providerId =</span> <span class="st">"UNICEF"</span>, </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resource =</span> <span class="st">"dataflow"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">as_tibble</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[rsdmx][INFO] Fetching 'https://sdmx.data.unicef.org/ws/public/sdmxapi/rest/dataflow/all/all/latest/' </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">glimpse</span>(all_unicef_dataflows)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 167
+Columns: 12
+$ id                  &lt;chr&gt; "BRAZIL_CO", "BRAZIL_CO_SELO", "CAP2030", "CD2030"…
+$ agencyID            &lt;chr&gt; "BRAZIL_CO", "BRAZIL_CO", "CAP2030", "CD2030", "CD…
+$ Name.en             &lt;chr&gt; "Brazil Country Office", "Brazil SELO", "CAP 2030"…
+$ version             &lt;chr&gt; "1.0", "1.0", "1.0", "1.0", "1.0", "1.0", "1.0", "…
+$ uri                 &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ urn                 &lt;chr&gt; "urn:sdmx:org.sdmx.infomodel.datastructure.Dataflo…
+$ isExternalReference &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, F…
+$ isFinal             &lt;lgl&gt; FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, F…
+$ validFrom           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ validTo             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+$ dsdRef              &lt;chr&gt; "DSD_BRAZIL_CO", "DSD_BRAZIL_CO_SELO", "CAP2030", …
+$ Description.en      &lt;chr&gt; NA, NA, NA, "This dataset is used to support the d…</code></pre>
+</div>
+</div>
+<p>Now let’s filter down to dataflows that mention education in their “Name.en” field:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>all_unicef_dataflows <span class="sc">|&gt;</span> </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    stringr<span class="sc">::</span><span class="fu">str_detect</span>(Name.en, stringr<span class="sc">::</span><span class="fu">fixed</span>(<span class="st">"education"</span>, <span class="at">ignore_case =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(id, agencyID, Name.en, dsdRef)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 4
+  id              agencyID       Name.en                                dsdRef  
+  &lt;chr&gt;           &lt;chr&gt;          &lt;chr&gt;                                  &lt;chr&gt;   
+1 EDU             MENARO         MENARO Education                       MENARO_…
+2 UIS_EDU         UNESCO         UNESCO UIS Education                   UIS     
+3 EDU_NON_FINANCE UNESCO_ARCHIVE Education: Students and Teachers       EDU_NON…
+4 EDUCATION       UNICEF         Education                              EDUCATI…
+5 EDUCATION_FLS   UNICEF         Education Foundational Learning Skills EDUCATI…</code></pre>
+</div>
+</div>
+<p>Let’s say we want to explore the UNICEF dataflow with id equal to “EDUCATION”. We can see from the table above that that dataflow uses the data structure definition (DSD) “EDUCATION”. We can get more information on that DSD with:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>unicef_education_dsd <span class="ot">&lt;-</span> rsdmx<span class="sc">::</span><span class="fu">readSDMX</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">providerId =</span> <span class="st">"UNICEF"</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resource =</span> <span class="st">"datastructure"</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">resourceId =</span> <span class="st">"EDUCATION"</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[rsdmx][INFO] Fetching 'https://sdmx.data.unicef.org/ws/public/sdmxapi/rest/datastructure/all/EDUCATION/latest/?references=children' </code></pre>
+</div>
+</div>
+<p>When we make a data request below, we will need to know the DSD dimensions in order. To see the dimensions in order, along with the codelists used by each, we use:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dimensions_in_order <span class="ot">&lt;-</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  unicef_education_dsd<span class="sc">@</span>datastructures<span class="sc">@</span>datastructures[[<span class="dv">1</span>]]<span class="sc">@</span>Components<span class="sc">@</span>Dimensions</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>dimensions_and_codelists_in_order <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map2</span>(</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">seq_along</span>(dimensions_in_order),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  dimensions_in_order,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>dplyr<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">order =</span> .x, <span class="at">dimension =</span> .y<span class="sc">@</span>conceptRef, <span class="at">codelist =</span> .y<span class="sc">@</span>codelist)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> purrr<span class="sc">::</span><span class="fu">list_rbind</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>dimensions_and_codelists_in_order</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 3
+  order dimension        codelist           
+  &lt;int&gt; &lt;chr&gt;            &lt;chr&gt;              
+1     1 REF_AREA         CL_COUNTRY         
+2     2 UNICEF_INDICATOR CL_UNICEF_INDICATOR
+3     3 SEX              CL_SEX             
+4     4 EDUCATION_LEVEL  CL_EDU_LEVEL       
+5     5 WEALTH_QUINTILE  CL_WEALTH_QUINTILE 
+6     6 RESIDENCE        CL_RESIDENCE       
+7     7 UNIT_MEASURE     CL_UNIT_MEASURE    </code></pre>
+</div>
+</div>
+<p>Let’s look more closely at the UNICIEF_INDICATOR dimension, which uses the codelist with name “CL_UNICEF_INDICATOR”:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>unicef_education_dsd_indicators_codelist <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">keep</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  unicef_education_dsd<span class="sc">@</span>codelists<span class="sc">@</span>codelists,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>.x<span class="sc">@</span>id <span class="sc">==</span> <span class="st">"CL_UNICEF_INDICATOR"</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>)[[<span class="dv">1</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can see information on the codes in the “CL_UNICEF_INDICATOR” codelist with:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>indicator_code_labels <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_chr</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  unicef_education_dsd_indicators_codelist<span class="sc">@</span>Code,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>.x<span class="sc">@</span>label<span class="sc">$</span>en</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(indicator_code_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Child mortality"                                                               
+[2] "Annual Rate of Reduction in Mortality Rate Age 10-19"                          
+[3] "Annual rate of reduction in stillbirth rate (over previous 20 years)"          
+[4] "Annual rate of reduction in under-five mortality rate (over previous 20 years)"
+[5] "Covid cases"                                                                   
+[6] "Covid cases share"                                                             </code></pre>
+</div>
+</div>
+<p>It looks like we are getting all of the possible UNICEF indicators here, not just the ones related to education. Let’s filter down to just the indicators that mention “education”:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>stringr<span class="sc">::</span><span class="fu">str_subset</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  indicator_code_labels, </span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  stringr<span class="sc">::</span><span class="fu">fixed</span>(<span class="st">"education"</span>, <span class="at">ignore_case =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "Percentage of children aged 36-59 months attending an early childhood education programme"                                                           
+ [2] "government expenditure on education (% government budget)"                                                                                           
+ [3] "government expenditure on education (% GDP)"                                                                                                         
+ [4] "Education"                                                                                                                                           
+ [5] "Percentage of population aged 6-17 attending a formal educational institution (%)"                                                                   
+ [6] "Completion rate for youth of upper secondary education school age"                                                                                   
+ [7] "Proportion of children and young people b) at the end of primary education achieving at least a minimum proficiency level in (ii) mathematics"       
+ [8] "Proportion of children and young people c) at the end of lower secondary educationachieving at least a minimum proficiency level in (ii) mathematics"
+ [9] "Proportion of children and young people b) at the end of primary education achieving at least a minimum proficiency level in (i) reading"            
+[10] "Proportion of children and young people c) at the end of lower secondary education achieving at least a minimum proficiency level in (i) reading"    
+[11] "Average number of pupils per mathematics textbook in primary education"                                                                              
+[12] "Average number of pupils per reading textbook in primary education"                                                                                  
+[13] "Early childhood education (Functional difficulties)"                                                                                                 
+[14] "Educational attainment of the population (aged 25 years and older)"                                                                                  
+[15] "Pro-poor public social spending, education (%)"                                                                                                      
+[16] "Education National Targets"                                                                                                                          
+[17] "Percentage of adolescents (aged 15-19 years) not in education, employment or training"                                                               
+[18] "Pro-poor public social spending, education - Bottom quintile (%)"                                                                                    
+[19] "Completion rate for youth of upper secondary education school age (Modeled)"                                                                         </code></pre>
+</div>
+</div>
+<p>The indicator “Completion rate for youth of upper secondary education school age” looks like what we want. Let’s see more information on that just to be sure:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>upper_secondary_completion_indicator <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">keep</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  unicef_education_dsd_indicators_codelist<span class="sc">@</span>Code,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>.x<span class="sc">@</span>label<span class="sc">$</span>en <span class="sc">==</span> <span class="st">"Completion rate for youth of upper secondary education school age"</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>)[[<span class="dv">1</span>]]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>upper_secondary_completion_indicator<span class="sc">@</span>description<span class="sc">$</span>en</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Percentage of a cohort of children or young people aged 3-5 years above the intended age for the last grade of upper secondary education who have completed upper secondary education"</code></pre>
+</div>
+</div>
+<p>In order to request data for that indicator, we will need to know its ID value:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>upper_secondary_completion_indicator<span class="sc">@</span>id</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "ED_CR_L3"</code></pre>
+</div>
+</div>
+<p>In this case, we want to limit to countries from Africa, so let’s look at the codelist “CL_COUNTRY”:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cl_country_codelist <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">keep</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  unicef_education_dsd<span class="sc">@</span>codelists<span class="sc">@</span>codelists,</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>.x<span class="sc">@</span>id <span class="sc">==</span> <span class="st">"CL_COUNTRY"</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>)[[<span class="dv">1</span>]]</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>country_codes_and_labels <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  cl_country_codelist<span class="sc">@</span>Code,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>dplyr<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">code =</span> .x<span class="sc">@</span>id, <span class="at">label =</span> .x<span class="sc">@</span>label<span class="sc">$</span>en)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">list_rbind</span>()</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>country_codes_and_labels</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 371 × 2
+   code  label               
+   &lt;chr&gt; &lt;chr&gt;               
+ 1 ABW   Aruba               
+ 2 AFG   Afghanistan         
+ 3 AGO   Angola              
+ 4 AIA   Anguilla            
+ 5 ALB   Albania             
+ 6 AND   Andorra             
+ 7 ARE   United Arab Emirates
+ 8 ARG   Argentina           
+ 9 ARM   Armenia             
+10 ASM   American Samoa      
+# ℹ 361 more rows</code></pre>
+</div>
+</div>
+<p>Let’s use the countrycode package to find countries in Africa:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>country_codes_and_labels <span class="ot">&lt;-</span> country_codes_and_labels <span class="sc">|&gt;</span> </span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">standard_label =</span> countrycode<span class="sc">::</span><span class="fu">countryname</span>(label, <span class="at">destination =</span> <span class="st">"country.name.en"</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    countrycode<span class="sc">::</span>codelist <span class="sc">|&gt;</span> </span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(continent, country.name.en),</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="fu">c</span>(<span class="at">standard_label =</span> <span class="st">"country.name.en"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There were 2 warnings in `dplyr::mutate()`.
+The first warning was:
+ℹ In argument: `standard_label = countrycode::countryname(label, destination =
+  "country.name.en")`.
+Caused by warning:
+! Some values were not matched unambiguously: Africa, Africa (African Union), African Union, Americas, Arab Maghreb Union (UMA), Arab States, Asia, Asia and the Pacific, Australia and New Zealand, Caribbean, Central Africa (African Union), Central America, Central and Southern Asia, Central Asia, Common Market for Eastern and Southern Africa (COMESA), Community of Sahel-Saharan States (CEN-SAD), EAPR (operational region), East African Community (EAC), East and Southern Africa, East Asia and Pacific, Eastern Africa, Eastern Africa (African Union), Eastern and South-Eastern Asia, Eastern and Southern Africa, Eastern Asia, Eastern Europe, Eastern Europe and Central Asia, Eastern Mediterranean, ECAR (operational region), Economic Community of Central African States (ECCAS), Economic Community of West African States (ECOWAS), ESAR (operational region), Europe, Europe and Central Asia, Europe and Northern America, Intergovernmental Authority on Development (IGAD), LACR (operational region), Landlocked developing countries (LLDCs), Latin America and the Caribbean, Least developed countries, Less Developed Regions, Low income food deficient countries, Melanasia, Melanesia, MENA (operational region), Micronesia, Middle Africa, Middle East and North Africa, North America, Northern Africa, Northern Africa (African Union), Northern Africa and Western Asia, Northern America, Northern Europe, Oceania, Oceania, excluding Australia and New Zealand, OECD, OECD Fragile Contexts, Polynesia, Regional Economic Communities, ROSA (operational region), SDG regions - Global, Small Island Developing States (SIDS), SOFI - Global, South-eastern Asia, South-Eastern Asia, South America, South Asia, Southeast Asia, Southern Africa, Southern Africa (African Union), Southern African Development Community (SADC), Southern Asia, Southern Europe, Sub-Saharan Africa, UN regions - Global, UNFPA regions, UNICEF operational regions, UNICEF Programme Regions - Global, UNICEF reporting regions - Global, WCAR (operational region), West and Central Africa, Western Africa, Western Africa (African Union), Western Asia, Western Europe, Western Pacific, World, World Bank (high income), World Bank (low income), World Bank (lower middle income), World Bank (upper middle income), World Bank income groups - Global, World bank World - Global, World Health Organisation regions - Global
+ℹ Run `dplyr::last_dplyr_warnings()` to see the 1 remaining warning.</code></pre>
+</div>
+</div>
+<p>Let’s see which labels couldn’t be matched unambiguously:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>country_codes_and_labels <span class="sc">|&gt;</span> </span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="fu">is.na</span>(continent)) <span class="sc">|&gt;</span> </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">pull</span>(label)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  [1] "Channel Islands"                                       
+  [2] "SOFI - Global"                                         
+  [3] "Low income food deficient countries"                   
+  [4] "Africa"                                                
+  [5] "South America"                                         
+  [6] "Oceania"                                               
+  [7] "Western Africa"                                        
+  [8] "Central America"                                       
+  [9] "Eastern Africa"                                        
+ [10] "Northern Africa"                                       
+ [11] "Middle Africa"                                         
+ [12] "Southern Africa"                                       
+ [13] "Northern America"                                      
+ [14] "Caribbean"                                             
+ [15] "Eastern Asia"                                          
+ [16] "Southern Asia"                                         
+ [17] "South-eastern Asia"                                    
+ [18] "Australia and New Zealand"                             
+ [19] "Asia"                                                  
+ [20] "Central Asia"                                          
+ [21] "Western Asia"                                          
+ [22] "Eastern Europe"                                        
+ [23] "Northern Europe"                                       
+ [24] "Western Europe"                                        
+ [25] "Southern Europe"                                       
+ [26] "Latin America and the Caribbean"                       
+ [27] "Melanasia"                                             
+ [28] "Oceania, excluding Australia and New Zealand"          
+ [29] "Micronesia"                                            
+ [30] "Polynesia"                                             
+ [31] "UN regions - Global"                                   
+ [32] "Less Developed Regions"                                
+ [33] "Asia and the Pacific"                                  
+ [34] "Arab States"                                           
+ [35] "Eastern Europe and Central Asia"                       
+ [36] "East and Southern Africa"                              
+ [37] "Latin America and the Caribbean"                       
+ [38] "UNFPA regions"                                         
+ [39] "West and Central Africa"                               
+ [40] "East Asia and Pacific"                                 
+ [41] "East Asia and Pacific"                                 
+ [42] "Europe and Central Asia"                               
+ [43] "Europe and Central Asia"                               
+ [44] "Eastern Europe and Central Asia"                       
+ [45] "Eastern and Southern Africa"                           
+ [46] "Eastern and Southern Africa"                           
+ [47] "Latin America and the Caribbean"                       
+ [48] "Latin America and the Caribbean"                       
+ [49] "Middle East and North Africa"                          
+ [50] "Middle East and North Africa"                          
+ [51] "North America"                                         
+ [52] "UNICEF Programme Regions - Global"                     
+ [53] "UNICEF reporting regions - Global"                     
+ [54] "South Asia"                                            
+ [55] "South Asia"                                            
+ [56] "Sub-Saharan Africa"                                    
+ [57] "West and Central Africa"                               
+ [58] "West and Central Africa"                               
+ [59] "Western Europe"                                        
+ [60] "Australia and New Zealand"                             
+ [61] "Caribbean"                                             
+ [62] "Central America"                                       
+ [63] "Central Asia"                                          
+ [64] "Central and Southern Asia"                             
+ [65] "Eastern Africa"                                        
+ [66] "Eastern Asia"                                          
+ [67] "Eastern and South-Eastern Asia"                        
+ [68] "Eastern Europe"                                        
+ [69] "Europe"                                                
+ [70] "Europe and Northern America"                           
+ [71] "Latin America and the Caribbean"                       
+ [72] "Least developed countries"                             
+ [73] "Landlocked developing countries (LLDCs)"               
+ [74] "Melanesia"                                             
+ [75] "Middle Africa"                                         
+ [76] "Northern Africa"                                       
+ [77] "North America"                                         
+ [78] "Oceania"                                               
+ [79] "Oceania, excluding Australia and New Zealand"          
+ [80] "Polynesia"                                             
+ [81] "SDG regions - Global"                                  
+ [82] "Small Island Developing States (SIDS)"                 
+ [83] "South America"                                         
+ [84] "Southern Asia"                                         
+ [85] "South-Eastern Asia"                                    
+ [86] "Southern Africa"                                       
+ [87] "Sub-Saharan Africa"                                    
+ [88] "Western Africa"                                        
+ [89] "Western Asia"                                          
+ [90] "Northern Africa and Western Asia"                      
+ [91] "East Asia and Pacific"                                 
+ [92] "World Bank (high income)"                              
+ [93] "World Bank income groups - Global"                     
+ [94] "Latin America and the Caribbean"                       
+ [95] "World Bank (low income)"                               
+ [96] "World Bank (lower middle income)"                      
+ [97] "Middle East and North Africa"                          
+ [98] "North America"                                         
+ [99] "World bank World - Global"                             
+[100] "South Asia"                                            
+[101] "Sub-Saharan Africa"                                    
+[102] "World Bank (upper middle income)"                      
+[103] "Africa"                                                
+[104] "Americas"                                              
+[105] "Eastern Mediterranean"                                 
+[106] "Europe"                                                
+[107] "World Health Organisation regions - Global"            
+[108] "Southeast Asia"                                        
+[109] "Western Pacific"                                       
+[110] "World"                                                 
+[111] "Kosovo (UNSCR 1244)"                                   
+[112] "African Union"                                         
+[113] "Africa (African Union)"                                
+[114] "Central Africa (African Union)"                        
+[115] "Eastern Africa (African Union)"                        
+[116] "Northern Africa (African Union)"                       
+[117] "Southern Africa (African Union)"                       
+[118] "Western Africa (African Union)"                        
+[119] "OECD"                                                  
+[120] "OECD Fragile Contexts"                                 
+[121] "UNICEF operational regions"                            
+[122] "EAPR (operational region)"                             
+[123] "ECAR (operational region)"                             
+[124] "ESAR (operational region)"                             
+[125] "LACR (operational region)"                             
+[126] "MENA (operational region)"                             
+[127] "ROSA (operational region)"                             
+[128] "WCAR (operational region)"                             
+[129] "Regional Economic Communities"                         
+[130] "Arab Maghreb Union (UMA)"                              
+[131] "Common Market for Eastern and Southern Africa (COMESA)"
+[132] "Community of Sahel-Saharan States (CEN-SAD)"           
+[133] "East African Community (EAC)"                          
+[134] "Economic Community of Central African States (ECCAS)"  
+[135] "Economic Community of West African States (ECOWAS)"    
+[136] "Intergovernmental Authority on Development (IGAD)"     
+[137] "Southern African Development Community (SADC)"         </code></pre>
+</div>
+</div>
+<p>Looks like most of these are supra- or sub-national regions, so it makes sense that we couldn’t match them to a single country name. Now we’re ready to filter down to countries in Africa so we can get the corresponding codes for our API request:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>african_country_codes <span class="ot">&lt;-</span> country_codes_and_labels <span class="sc">|&gt;</span> </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(continent <span class="sc">==</span> <span class="st">"Africa"</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>african_country_codes</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 57 × 4
+   code  label                            standard_label           continent
+   &lt;chr&gt; &lt;chr&gt;                            &lt;chr&gt;                    &lt;chr&gt;    
+ 1 AGO   Angola                           Angola                   Africa   
+ 2 BDI   Burundi                          Burundi                  Africa   
+ 3 BEN   Benin                            Benin                    Africa   
+ 4 BFA   Burkina Faso                     Burkina Faso             Africa   
+ 5 BWA   Botswana                         Botswana                 Africa   
+ 6 CAF   Central African Republic         Central African Republic Africa   
+ 7 CIV   Côte d'Ivoire                    Côte d’Ivoire            Africa   
+ 8 CMR   Cameroon                         Cameroon                 Africa   
+ 9 COD   Democratic Republic of the Congo Congo - Kinshasa         Africa   
+10 COG   Congo                            Congo - Brazzaville      Africa   
+# ℹ 47 more rows</code></pre>
+</div>
+</div>
+<p>We could filter our request on additional dimensions, but for the sake of simplicity let’s filter only to our target indicator and countries. Here’s how to make that request:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>african_education_data <span class="ot">&lt;-</span> rsdmx<span class="sc">::</span><span class="fu">readSDMX</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">providerId =</span> <span class="st">"UNICEF"</span>,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">resource =</span> <span class="st">"data"</span>,</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">flowRef =</span> <span class="st">"EDUCATION"</span>,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">key =</span> <span class="fu">list</span>(african_country_codes<span class="sc">$</span>code, <span class="st">"ED_CR_L3"</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[rsdmx][INFO] Fetching 'https://sdmx.data.unicef.org/ws/public/sdmxapi/rest/data/EDUCATION/AGO+BDI+BEN+BFA+BWA+CAF+CIV+CMR+COD+COG+COM+CPV+DJI+DZA+EGY+ERI+ETH+GAB+GHA+GIN+GMB+GNB+GNQ+KEN+LBR+LBY+LSO+MAR+MDG+MLI+MOZ+MRT+MUS+MWI+MYT+NAM+NER+NGA+REU+RWA+SDN+SEN+SHN+SLE+SOM+SSD+STP+SWZ+SYC+TCD+TGO+TUN+TZA+UGA+ZAF+ZMB+ZWE.ED_CR_L3/all/' </code></pre>
+</div>
+</div>
+<p>Remember from above that reference area and indicator were the first two dimensions in the DSD, which is why we can list our restrictions for just those two dimensions in our <code>key</code> argument. The list passed to <code>key</code> will be assumed to correspond to the first “n” dimensions (where n is the length of the list).</p>
+<p>To work with the data in R, we need to transform them from XML to an R data.frame or tibble:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>african_education_data_as_list <span class="ot">&lt;-</span> XML<span class="sc">::</span><span class="fu">xmlToList</span>(african_education_data<span class="sc">@</span>xmlObj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>african_education_data_points <span class="ot">&lt;-</span> african_education_data_as_list<span class="sc">$</span>DataSet[</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(african_education_data_as_list<span class="sc">$</span>DataSet) <span class="sc">==</span> <span class="st">"Series"</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>african_education_data_as_tibble <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  african_education_data_points,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(datapoint) {</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    obs_data <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(datapoint<span class="sc">$</span>Obs, <span class="sc">~</span>.x)</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    dimension_data <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(datapoint<span class="sc">$</span>.attrs, <span class="sc">~</span>.x)</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">bind_cols</span>(dimension_data, obs_data)</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">list_rbind</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now let’s filter to only totals by sex, wealth quintile, and residence, and select and rename only the columns we want:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>african_education_data_cleaned <span class="ot">&lt;-</span> african_education_data_as_tibble <span class="sc">|&gt;</span> </span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">if_all</span>(<span class="fu">c</span>(SEX, WEALTH_QUINTILE, RESIDENCE), <span class="sc">~</span>.x <span class="sc">==</span> <span class="st">"_T"</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">left_join</span>(</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    african_country_codes <span class="sc">|&gt;</span> </span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="at">REF_AREA =</span> code, <span class="at">country_name =</span> standard_label), </span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"REF_AREA"</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    country_name, </span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> TIME_PERIOD, </span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">percent_completing_secondary =</span> OBS_VALUE,</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">data_source =</span> DATA_SOURCE</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">percent_completing_secondary =</span> <span class="fu">as.numeric</span>(percent_completing_secondary)</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we’re ready to plot our data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>african_education_data_cleaned <span class="sc">|&gt;</span> </span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">ggplot</span>(</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">aes</span>(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> forcats<span class="sc">::</span><span class="fu">fct_reorder</span>(country_name, percent_completing_secondary), </span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> percent_completing_secondary</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span> </span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">labs</span>(</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">title =</span> <span class="st">"Upper secondary completion rate, selected African countries"</span>,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> <span class="st">"% completing upper secondary"</span>,</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> <span class="st">"Country"</span>,</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"Source: UNICEF"</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Retrieving-education-stats-from-UNICEF-API-with-rsdmx_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+
+
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
